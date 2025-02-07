@@ -1,7 +1,7 @@
 import { Construct } from "constructs";
 import { ConfigProps, getConfig, STAGE } from "./config";
 import { Stack, StackProps } from "aws-cdk-lib";
-import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
+import { AttributeType, BillingMode, Table, ProjectionType } from "aws-cdk-lib/aws-dynamodb";
 import { LambdaFunctionResource } from "./resources/LambdaFunctionResource";
 import { CorsHttpMethod, HttpApi } from "aws-cdk-lib/aws-apigatewayv2";
 
@@ -43,11 +43,23 @@ export class EpInfrastructureStack extends Stack {
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 
+    userTable.addGlobalSecondaryIndex({
+      indexName: "GSI1",
+      partitionKey: { name: "email", type: AttributeType.STRING },
+      sortKey: { name: 'pk', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
     const registerUserLambdaFunction = new LambdaFunctionResource(this, {
       functionName: "registerUser",
     });
 
+    const loginLambdaFunction = new LambdaFunctionResource(this, {
+      functionName: 'login'
+    })
+
     userTable.grantReadWriteData(registerUserLambdaFunction.role);
+    userTable.grantReadWriteData(loginLambdaFunction.role);
 
     this.exportValue(httpApi.apiId, {
       name: `${this.stage}-${this.projectName}-http-api-id`,
