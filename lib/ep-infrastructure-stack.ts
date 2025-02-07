@@ -1,6 +1,9 @@
 import { Construct } from "constructs";
 import { ConfigProps, getConfig, STAGE } from "./config";
 import { Stack, StackProps } from "aws-cdk-lib";
+import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
+import { LambdaFunctionResource } from "./resources/LambdaFunctionResource";
+import { CorsHttpMethod, HttpApi } from "aws-cdk-lib/aws-apigatewayv2";
 
 export type EpInfrastructureStackStackProps = StackProps & {
   projectName: string;
@@ -22,5 +25,32 @@ export class EpInfrastructureStack extends Stack {
 
     this.projectName = props.projectName;
     this.stage = config.STAGE;
+
+    const httpApi = new HttpApi(this, "HttpApi", {
+      apiName: `${this.stage}-${this.projectName}-http-api`,
+      createDefaultStage: true,
+      corsPreflight: {
+        allowOrigins: ["*"],
+        allowMethods: [CorsHttpMethod.ANY],
+        allowHeaders: ["*"],
+      },
+    });
+
+    const userTable = new Table(this, "UserTable", {
+      tableName: `${this.stage}-${this.projectName}-user-table`,
+      partitionKey: { name: "pk", type: AttributeType.STRING },
+      sortKey: { name: "sk", type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+    });
+
+    const registerUserLambdaFunction = new LambdaFunctionResource(this, {
+      functionName: "registerUser",
+    });
+
+    userTable.grantReadWriteData(registerUserLambdaFunction.role);
+
+    this.exportValue(httpApi.apiId, {
+      name: `${this.stage}-${this.projectName}-http-api-id`,
+    });
   }
 }
