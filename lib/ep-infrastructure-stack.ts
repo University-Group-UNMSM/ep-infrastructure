@@ -88,9 +88,14 @@ export class EpInfrastructureStack extends Stack {
       functionName: "addProject",
     });
 
+    const getMyProfileLambdaFunction = new LambdaFunctionResource(this, {
+      functionName: 'getMyProfile'
+    });
+
     emprendeMasTable.grantReadWriteData(registerUserLambdaFunction.role);
     emprendeMasTable.grantReadWriteData(loginLambdaFunction.role);
     emprendeMasTable.grantReadWriteData(addProjectLambdaFunction.role);
+    emprendeMasTable.grantReadWriteData(getMyProfileLambdaFunction.role);
 
     this.exportValue(httpApi.apiId, {
       name: `${this.stage}-${this.projectName}-http-api-id`,
