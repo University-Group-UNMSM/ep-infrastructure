@@ -1,7 +1,12 @@
 import { Construct } from "constructs";
 import { ConfigProps, getConfig, STAGE } from "./config";
 import { Stack, StackProps } from "aws-cdk-lib";
-import { AttributeType, BillingMode, Table, ProjectionType } from "aws-cdk-lib/aws-dynamodb";
+import {
+  AttributeType,
+  BillingMode,
+  Table,
+  ProjectionType,
+} from "aws-cdk-lib/aws-dynamodb";
 import { LambdaFunctionResource } from "./resources/LambdaFunctionResource";
 import { CorsHttpMethod, HttpApi } from "aws-cdk-lib/aws-apigatewayv2";
 
@@ -36,17 +41,38 @@ export class EpInfrastructureStack extends Stack {
       },
     });
 
-    const userTable = new Table(this, "UserTable", {
-      tableName: `${this.stage}-${this.projectName}-user-table`,
+    const emprendeMasTable = new Table(this, "EmprendeMasTable", {
+      tableName: `${this.stage}-${this.projectName}-table`,
       partitionKey: { name: "pk", type: AttributeType.STRING },
       sortKey: { name: "sk", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 
-    userTable.addGlobalSecondaryIndex({
+    emprendeMasTable.addGlobalSecondaryIndex({
       indexName: "GSI1",
-      partitionKey: { name: "email", type: AttributeType.STRING },
-      sortKey: { name: 'pk', type: AttributeType.STRING },
+      partitionKey: { name: "sk", type: AttributeType.STRING },
+      sortKey: { name: "gsi1-sk", type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    emprendeMasTable.addGlobalSecondaryIndex({
+      indexName: "GSI2",
+      partitionKey: { name: "sk", type: AttributeType.STRING },
+      sortKey: { name: "gsi2-sk", type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    emprendeMasTable.addGlobalSecondaryIndex({
+      indexName: "GSI3",
+      partitionKey: { name: "sk", type: AttributeType.STRING },
+      sortKey: { name: "gsi3-sk", type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    emprendeMasTable.addGlobalSecondaryIndex({
+      indexName: "GSI4",
+      partitionKey: { name: "sk", type: AttributeType.STRING },
+      sortKey: { name: "gsi4-sk", type: AttributeType.STRING },
       projectionType: ProjectionType.ALL,
     });
 
@@ -55,11 +81,21 @@ export class EpInfrastructureStack extends Stack {
     });
 
     const loginLambdaFunction = new LambdaFunctionResource(this, {
-      functionName: 'login'
-    })
+      functionName: "login",
+    });
 
-    userTable.grantReadWriteData(registerUserLambdaFunction.role);
-    userTable.grantReadWriteData(loginLambdaFunction.role);
+    const addProjectLambdaFunction = new LambdaFunctionResource(this, {
+      functionName: "addProject",
+    });
+
+    const getMyProfileLambdaFunction = new LambdaFunctionResource(this, {
+      functionName: 'getMyProfile'
+    });
+
+    emprendeMasTable.grantReadWriteData(registerUserLambdaFunction.role);
+    emprendeMasTable.grantReadWriteData(loginLambdaFunction.role);
+    emprendeMasTable.grantReadWriteData(addProjectLambdaFunction.role);
+    emprendeMasTable.grantReadWriteData(getMyProfileLambdaFunction.role);
 
     this.exportValue(httpApi.apiId, {
       name: `${this.stage}-${this.projectName}-http-api-id`,
